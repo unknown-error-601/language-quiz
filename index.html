@@ -1,0 +1,46 @@
+
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>문장 유형 맞추기 퀴즈 (100문제)</title>
+  <style>
+    body { font-family: sans-serif; text-align: center; margin-top: 50px; }
+    .question { font-size: 1.5em; margin: 30px 0; }
+    button { margin: 5px; padding: 10px 20px; font-size: 1em; }
+    .result { margin-top: 20px; font-size: 1.2em; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <h1>문장 유형 맞추기</h1>
+  <p class="question" id="sentence">문장이 로딩 중...</p>
+  <div>
+    <button onclick="checkAnswer('주동')">주동</button>
+    <button onclick="checkAnswer('피동')">피동</button>
+    <button onclick="checkAnswer('사동')">사동</button>
+  </div>
+  <p class="result" id="result"></p>
+  <button onclick="nextQuestion()">다음 문제</button>
+
+  <script>
+    const questions = [{"sentence": "철수가 창문을 열었다.", "type": "주동"}, {"sentence": "민지가 꽃을 꺾었다.", "type": "주동"}, {"sentence": "나는 편지를 썼다.", "type": "주동"}, {"sentence": "선생님이 수업을 시작했다.", "type": "주동"}, {"sentence": "그가 벽을 칠했다.", "type": "주동"}, {"sentence": "아이가 공을 찼다.", "type": "주동"}, {"sentence": "우리가 길을 청소했다.", "type": "주동"}, {"sentence": "어머니가 식사를 준비했다.", "type": "주동"}, {"sentence": "의사가 환자를 진찰했다.", "type": "주동"}, {"sentence": "기자가 기사를 썼다.", "type": "주동"}, {"sentence": "요리사가 음식을 만들었다.", "type": "주동"}, {"sentence": "나는 시험을 봤다.", "type": "주동"}, {"sentence": "아버지가 나무를 베었다.", "type": "주동"}, {"sentence": "그녀는 고양이를 안았다.", "type": "주동"}, {"sentence": "운전자가 차를 멈췄다.", "type": "주동"}, {"sentence": "나는 카메라로 사진을 찍었다.", "type": "주동"}, {"sentence": "사장이 회의를 열었다.", "type": "주동"}, {"sentence": "아이들이 종이비행기를 날렸다.", "type": "주동"}, {"sentence": "그는 조용히 문을 닫았다.", "type": "주동"}, {"sentence": "나는 휴대폰을 충전했다.", "type": "주동"}, {"sentence": "학생이 문제를 풀었다.", "type": "주동"}, {"sentence": "그녀가 노래를 불렀다.", "type": "주동"}, {"sentence": "강아지가 장난감을 물었다.", "type": "주동"}, {"sentence": "그들이 시계를 고쳤다.", "type": "주동"}, {"sentence": "나는 손을 씻었다.", "type": "주동"}, {"sentence": "선수가 공을 던졌다.", "type": "주동"}, {"sentence": "누군가 종을 울렸다.", "type": "주동"}, {"sentence": "나는 우산을 폈다.", "type": "주동"}, {"sentence": "그가 노트북을 닫았다.", "type": "주동"}, {"sentence": "아이가 문을 열었다.", "type": "주동"}, {"sentence": "아버지가 불을 껐다.", "type": "주동"}, {"sentence": "나는 불을 켰다.", "type": "주동"}, {"sentence": "그녀는 창문을 열었다.", "type": "주동"}, {"sentence": "남자가 시동을 걸었다.", "type": "주동"}, {"sentence": "창문이 바람에 의해 열렸다.", "type": "피동"}, {"sentence": "편지가 우체부에 의해 배달되었다.", "type": "피동"}, {"sentence": "문이 저절로 닫혔다.", "type": "피동"}, {"sentence": "그림이 벽에 걸렸다.", "type": "피동"}, {"sentence": "전화가 끊겼다.", "type": "피동"}, {"sentence": "종이비행기가 바람에 날아갔다.", "type": "피동"}, {"sentence": "문서가 복사되었다.", "type": "피동"}, {"sentence": "그의 이름이 명단에 올랐다.", "type": "피동"}, {"sentence": "기회가 놓쳐졌다.", "type": "피동"}, {"sentence": "창문이 닫혔다.", "type": "피동"}, {"sentence": "식당이 예약되었다.", "type": "피동"}, {"sentence": "꽃병이 깨졌다.", "type": "피동"}, {"sentence": "편지가 찢어졌다.", "type": "피동"}, {"sentence": "그림이 팔렸다.", "type": "피동"}, {"sentence": "문이 열렸다.", "type": "피동"}, {"sentence": "옷이 더러워졌다.", "type": "피동"}, {"sentence": "창문이 깨졌다.", "type": "피동"}, {"sentence": "전화가 고장 났다.", "type": "피동"}, {"sentence": "종이배가 물에 떠내려갔다.", "type": "피동"}, {"sentence": "공이 구석에 굴러갔다.", "type": "피동"}, {"sentence": "노래가 들려왔다.", "type": "피동"}, {"sentence": "문제가 해결되었다.", "type": "피동"}, {"sentence": "메일이 보내졌다.", "type": "피동"}, {"sentence": "컴퓨터가 꺼졌다.", "type": "피동"}, {"sentence": "음악이 크게 틀어졌다.", "type": "피동"}, {"sentence": "의자가 밀려났다.", "type": "피동"}, {"sentence": "차가 멈춰졌다.", "type": "피동"}, {"sentence": "책이 떨어졌다.", "type": "피동"}, {"sentence": "그림이 찢어졌다.", "type": "피동"}, {"sentence": "음식이 상했다.", "type": "피동"}, {"sentence": "신호가 끊겼다.", "type": "피동"}, {"sentence": "편지가 읽혔다.", "type": "피동"}, {"sentence": "코드가 뽑혔다.", "type": "피동"}, {"sentence": "철수가 동생에게 창문을 열게 했다.", "type": "사동"}, {"sentence": "나는 동생을 울렸다.", "type": "사동"}, {"sentence": "그는 아이를 재웠다.", "type": "사동"}, {"sentence": "어머니가 아이에게 밥을 먹였다.", "type": "사동"}, {"sentence": "선생님이 학생을 일으켰다.", "type": "사동"}, {"sentence": "나는 동생에게 책을 읽게 했다.", "type": "사동"}, {"sentence": "우리는 아이를 웃게 했다.", "type": "사동"}, {"sentence": "그녀는 아이를 앉혔다.", "type": "사동"}, {"sentence": "나는 친구에게 문을 닫게 했다.", "type": "사동"}, {"sentence": "그는 학생을 걷게 했다.", "type": "사동"}, {"sentence": "어머니는 아이를 씻겼다.", "type": "사동"}, {"sentence": "그녀는 나를 웃겼다.", "type": "사동"}, {"sentence": "선생님은 아이에게 노래를 부르게 했다.", "type": "사동"}, {"sentence": "나는 동생에게 책가방을 메게 했다.", "type": "사동"}, {"sentence": "그는 고양이를 밖으로 내보냈다.", "type": "사동"}, {"sentence": "부모님이 아이를 춤추게 했다.", "type": "사동"}, {"sentence": "우리는 동생을 밖으로 내보냈다.", "type": "사동"}, {"sentence": "그녀는 고양이를 뛰게 했다.", "type": "사동"}, {"sentence": "선생님이 학생을 칠판 앞에 세웠다.", "type": "사동"}, {"sentence": "나는 친구에게 물건을 사게 했다.", "type": "사동"}, {"sentence": "그는 고양이를 안게 했다.", "type": "사동"}, {"sentence": "나는 동생을 기다리게 했다.", "type": "사동"}, {"sentence": "그녀는 아이에게 춤을 추게 했다.", "type": "사동"}, {"sentence": "선생님이 학생에게 문제를 풀게 했다.", "type": "사동"}, {"sentence": "우리가 고양이를 안게 했다.", "type": "사동"}, {"sentence": "그는 친구를 화나게 했다.", "type": "사동"}, {"sentence": "나는 아이에게 자전거를 타게 했다.", "type": "사동"}, {"sentence": "아버지가 나를 운동하게 했다.", "type": "사동"}, {"sentence": "그녀는 나에게 노래를 시켰다.", "type": "사동"}, {"sentence": "나는 동생을 공부시키고 있다.", "type": "사동"}, {"sentence": "선생님이 학생을 떠들지 못하게 했다.", "type": "사동"}, {"sentence": "나는 친구를 도와주게 했다.", "type": "사동"}, {"sentence": "그는 아이를 울게 했다.", "type": "사동"}];
+    let currentQuestion = {};
+
+    function nextQuestion() {
+      document.getElementById("result").textContent = "";
+      currentQuestion = questions[Math.floor(Math.random() * questions.length)];
+      document.getElementById("sentence").textContent = currentQuestion.sentence;
+    }
+
+    function checkAnswer(choice) {
+      if (choice === currentQuestion.type) {
+        document.getElementById("result").textContent = "정답입니다!";
+      } else {
+        document.getElementById("result").textContent = `오답입니다! 정답: ${currentQuestion.type}`;
+      }
+    }
+
+    window.onload = nextQuestion;
+  </script>
+</body>
+</html>
