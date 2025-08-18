@@ -1,0 +1,25 @@
+{
+  "name": "Tasks (Offline PWA)",
+  "short_name": "Tasks",
+  "start_url": ".",
+  "scope": ".",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#0a0f14",
+  "background_color": "#0a0f14",
+  "categories": ["productivity"],
+  "description": "Offline to‑do PWA with reminders, progress tracking, and due‑soon highlights.",
+  "icons": [
+    { "src": "./icons/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "./icons/maskable.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    {
+      "name": "Add task",
+      "short_name": "Add",
+      "url": "./#add",
+      "icons": [{"src": "./icons/icon.svg", "sizes": "any", "type": "image/svg+xml"}]
+    }
+  ]
+}
+
