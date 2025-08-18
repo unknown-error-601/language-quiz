@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#0a0f14">
+  <meta name="description" content="Offline PWA To‑Do with reminders and progress tracking">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" href="./icons/icon.svg" type="image/svg+xml">
+  <title>Tasks</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <noscript>This app requires JavaScript to run.</noscript>
+  <div id="app">
+    <header class="app-header">
+      <h1 class="title">Tasks</h1>
+      <div class="header-actions">
+        <button id="toggleDeleteBtn" class="btn btn-danger" title="Select tasks to remove">Select to remove</button>
+        <button id="enableNotifBtn" class="btn btn-outline" hidden>Enable notifications</button>
+      </div>
+    </header>
+
+    <section class="progress-section">
+      <div class="progress-bar" aria-label="Completion progress">
+        <div id="progressFill" class="progress-fill" style="width:0%"></div>
+      </div>
+      <div class="progress-text"><span id="completedCount">0</span>/<span id="totalCount">0</span> completed</div>
+    </section>
+
+    <section id="dueSoonSection" class="due-soon" hidden>
+      <div class="section-header">
+        <h2>Due in less than 3 days</h2>
+      </div>
+      <ul id="dueSoonList" class="task-list compact"></ul>
+    </section>
+
+    <main class="main">
+      <ul id="taskList" class="task-list"></ul>
+      <div class="add-btn-wrap">
+        <button id="addTaskBtn" class="btn btn-primary">Add new task</button>
+      </div>
+    </main>
+  </div>
+
+  <div id="modalOverlay" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="modalTitle">New task</h3>
+        <button id="closeModalBtn" class="icon-btn" aria-label="Close">✕</button>
+      </div>
+      <form id="taskForm" class="modal-body">
+        <label class="field">
+          <span>Title</span>
+          <input id="taskTitle" name="title" type="text" required maxlength="160" placeholder="e.g., Submit project report">
+        </label>
+
+        <label class="field">
+          <span>Description (optional)</span>
+          <textarea id="taskDesc" name="description" rows="3" placeholder="Details, links, notes"></textarea>
+        </label>
+
+        <div class="row">
+          <label class="field">
+            <span>Due date & time</span>
+            <input id="taskDue" name="due" type="datetime-local" required>
+          </label>
+          <label class="field">
+            <span>Importance: <b><span id="importanceValue">5</span></b></span>
+            <input id="taskImportance" name="importance" type="range" min="1" max="10" value="5">
+          </label>
+        </div>
+
+        <div class="row">
+          <label class="field checkbox">
+            <input id="taskNotify" name="notify" type="checkbox" checked>
+            <span>Remind me 3 days before</span>
+          </label>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" id="cancelBtn" class="btn">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save task</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <template id="taskItemTemplate">
+    <li class="task-item">
+      <label class="complete">
+        <input type="checkbox" class="complete-toggle">
+        <span class="checkmark"></span>
+      </label>
+      <div class="task-main">
+        <div class="task-title-row">
+          <span class="task-title"></span>
+          <span class="importance" title="Importance">•</span>
+        </div>
+        <div class="task-meta">
+          <span class="due"></span>
+          <span class="badge due-soon-badge" hidden>Due soon</span>
+        </div>
+        <div class="task-desc" hidden></div>
+      </div>
+      <label class="select-for-delete" hidden>
+        <input type="checkbox" class="select-delete">
+        <span>Select</span>
+      </label>
+    </li>
+  </template>
+
+  <div id="bulkDeleteBar" class="bulk-delete hidden">
+    <span id="selectedCount">0 selected</span>
+    <button id="deleteSelectedBtn" class="btn btn-danger">Delete selected</button>
+    <button id="exitDeleteModeBtn" class="btn btn-outline">Done</button>
+  </div>
+
+  <script type="module" src="./app.js"></script>
+</body>
+</html>
