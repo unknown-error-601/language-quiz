@@ -139,9 +139,16 @@
                 <input id="hostRoomName" placeholder="e.g. Flight Chat 12A" />
               </div>
               <div>
-                <label for="hostPassword">Room password (shared secret)</label>
-                <input id="hostPassword" placeholder="Choose a password" type="password" />
-                <div class="hint">Everyone needs this password to read/send messages.</div>
+                <label for="hostPassword">Join Code (letters & numbers)</label>
+                <div class="row" style="gap:8px; align-items:center;">
+                  <div class="col" style="flex:1 1 auto;">
+                    <input id="hostPassword" placeholder="e.g. 7KPG4Z2C" inputmode="text" autocapitalize="characters" autocorrect="off" autocomplete="off" spellcheck="false" />
+                  </div>
+                  <div>
+                    <button id="shuffleJoinCode" class="ghost">Random</button>
+                  </div>
+                </div>
+                <div class="hint">Share this short code with everyone joining. It secures the chat.</div>
               </div>
             </div>
             <div class="actions">
@@ -160,26 +167,33 @@
                 <input id="joinDisplayName" placeholder="e.g. Sam" />
               </div>
               <div>
-                <label for="joinPassword">Room password</label>
-                <input id="joinPassword" placeholder="Enter the password from host" type="password" />
-              </div>
-              <div>
-                <label for="offerCodeInput">Paste Join Code from host</label>
-                <textarea id="offerCodeInput" placeholder="Paste the Join Code here"></textarea>
+                <label for="joinPassword">Join Code</label>
+                <input id="joinPassword" placeholder="Enter the host's Join Code" inputmode="text" autocapitalize="characters" autocorrect="off" autocomplete="off" spellcheck="false" />
               </div>
             </div>
             <div class="actions">
-              <button id="makeAnswerBtn" class="secondary">Generate Answer Code</button>
+              <button id="showManualJoinBtn" class="ghost">Manual pairing</button>
             </div>
-            <div id="answerWrap" class="hidden">
-              <div class="vspace"></div>
-              <label>Your Answer Code (send to host)</label>
-              <textarea id="answerCodeOutput" readonly></textarea>
-              <div class="actions">
-                <button id="copyAnswerBtn">Copy Answer</button>
-                <button id="resetJoinBtn" class="ghost">Reset</button>
+            <div id="manualJoinWrap" class="hidden">
+              <div class="stack">
+                <div>
+                  <label for="offerCodeInput">Paste Link Code from host (advanced)</label>
+                  <textarea id="offerCodeInput" placeholder="Paste Link Code here (SDP)"></textarea>
+                </div>
               </div>
-              <div class="hint">After the host pastes your Answer Code, the connection will open and chat will appear below.</div>
+              <div class="actions">
+                <button id="makeAnswerBtn" class="secondary">Generate Answer Code</button>
+              </div>
+              <div id="answerWrap" class="hidden">
+                <div class="vspace"></div>
+                <label>Your Answer Code (send to host)</label>
+                <textarea id="answerCodeOutput" readonly></textarea>
+                <div class="actions">
+                  <button id="copyAnswerBtn">Copy Answer</button>
+                  <button id="resetJoinBtn" class="ghost">Reset</button>
+                </div>
+                <div class="hint">After the host pastes your Answer Code, the connection will open and chat will appear below.</div>
+              </div>
             </div>
           </div>
         </div>
@@ -193,7 +207,7 @@
           <div class="chat-header">
             <div>
               <div class="title">Room: <span id="roomNameLabel"></span></div>
-              <div class="subtitle">Share Join Codes with people on your network. Paste their Answer Codes to connect.</div>
+              <div class="subtitle">Join Code: <span class="pill" id="joinCodeLabel"></span></div>
             </div>
             <div class="actions">
               <button id="leaveHostBtn" class="danger">End room</button>
@@ -202,10 +216,10 @@
           <div class="row">
             <div class="col">
               <div class="card stack">
-                <div class="title">Add a participant</div>
-                <div class="subtitle">Generate a Join Code for one person. Repeat for each person.</div>
+                <div class="title">Link a participant</div>
+                <div class="subtitle">Show a Link Code (or QR) and paste their Answer to connect.</div>
                 <div class="actions">
-                  <button id="genOfferBtn">Generate Join Code</button>
+                  <button id="genOfferBtn">Show Link Code</button>
                 </div>
                 <div id="pendingOffers" class="stack"></div>
               </div>
@@ -263,10 +277,10 @@
       <div class="stack">
         <div class="title">How it works (offline)</div>
         <ol class="subtitle" style="margin: 0 0 6px 18px;">
-          <li>Host taps “Create room” and chooses a password.</li>
-          <li>Host taps “Generate Join Code” and shows the code to a friend.</li>
-          <li>Friend pastes the Join Code, then taps “Generate Answer Code”.</li>
-          <li>Host pastes that Answer Code. The chat opens.</li>
+          <li>Host taps “Create room” and shares the short Join Code.</li>
+          <li>Open “Manual pairing” to exchange one-time Link Codes.</li>
+          <li>Friend pastes the Link Code, taps “Generate Answer Code”, and sends it back.</li>
+          <li>Host pastes the Answer Code. The chat opens.</li>
         </ol>
         <div class="hint">This uses local WebRTC connections with no STUN/TURN servers. Works on the same Wi‑Fi/hotspot without internet. The host relays messages between people in the room.</div>
         <div class="actions right"><button id="closeHowBtn" class="secondary">Close</button></div>
@@ -404,11 +418,27 @@
     };
     E('closeHowBtn').onclick = () => E('view-how').classList.add('hidden');
 
+    // Default a random short Join Code for convenience
+    E('hostPassword').value = uid(8);
+    E('shuffleJoinCode').onclick = () => { E('hostPassword').value = uid(8); };
+    function sanitizeCodeInput(el) {
+      el.value = (el.value || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+    }
+    E('hostPassword').addEventListener('input', () => sanitizeCodeInput(E('hostPassword')));
+    E('joinPassword').addEventListener('input', () => sanitizeCodeInput(E('joinPassword')));
+
+    // Toggle manual pairing UI for fallback use
+    E('showManualJoinBtn').onclick = () => {
+      const el = E('manualJoinWrap');
+      el.classList.toggle('hidden');
+    };
+
     // Home -> Host
     E('createRoomBtn').onclick = async () => {
       const name = (E('hostDisplayName').value || '').trim() || 'Host';
       const roomName = (E('hostRoomName').value || '').trim() || 'Room-' + uid(4);
-      const password = E('hostPassword').value;
+      sanitizeCodeInput(E('hostPassword'));
+      const password = E('hostPassword').value || uid(8);
       if (!password) { alert('Please set a room password.'); return; }
       const salt = crypto.getRandomValues(new Uint8Array(16));
       state.saltB64 = bufToBase64(salt);
@@ -417,6 +447,7 @@
       state.roomName = roomName;
       state.roomId = uid(6);
       E('roomNameLabel').textContent = roomName;
+      E('joinCodeLabel').textContent = password;
       updateMembers();
       setView('host');
       sysHost(`Room started: ${roomName}`);
@@ -427,6 +458,7 @@
     E('makeAnswerBtn').onclick = async () => {
       try {
         const displayName = (E('joinDisplayName').value || '').trim() || 'Guest-' + uid(3);
+        sanitizeCodeInput(E('joinPassword'));
         const password = E('joinPassword').value;
         if (!password) { alert('Enter the room password.'); return; }
         const { sdp, saltB64, roomName } = parseOfferCode(E('offerCodeInput').value.trim());
@@ -494,14 +526,14 @@
       offerItemEl.innerHTML = `
         <div class="stack">
           <div><span class="pill">Offer ${offerId}</span></div>
-          <label>Join Code (give to one person)</label>
+          <label>Join SDP (advanced)</label>
           <textarea class="offerText" readonly></textarea>
           <div class="actions">
             <button class="copyOffer">Copy</button>
             <button class="cancelOffer ghost">Cancel</button>
           </div>
           <div class="divider"></div>
-          <label>Paste Answer Code from that person</label>
+          <label>Answer SDP from that person (advanced)</label>
           <textarea class="answerText" placeholder="Paste Answer Code"></textarea>
           <div class="actions">
             <button class="applyAnswer secondary">Connect</button>
