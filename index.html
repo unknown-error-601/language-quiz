@@ -1,46 +1,736 @@
 
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>문장 유형 맞추기 퀴즈 (100문제)</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+  <title>Offline LAN Chat — Host or Join</title>
   <style>
-    body { font-family: sans-serif; text-align: center; margin-top: 50px; }
-    .question { font-size: 1.5em; margin: 30px 0; }
-    button { margin: 5px; padding: 10px 20px; font-size: 1em; }
-    .result { margin-top: 20px; font-size: 1.2em; font-weight: bold; }
+    :root {
+      --bg: #0b1320;
+      --panel: #121a2a;
+      --muted: #8aa0bf;
+      --text: #e8eef9;
+      --accent: #4f9cff;
+      --accent-2: #3ddc97;
+      --warning: #ffb020;
+      --danger: #ff5964;
+      --shadow: rgba(0,0,0,0.25);
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Noto Sans, Ubuntu, Cantarell, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+      color: var(--text);
+      background: linear-gradient(180deg, #0b1320, #0e1626 40%, #0b1320 100%);
+    }
+    .container {
+      width: 100%;
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 16px;
+    }
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 0 8px 0;
+    }
+    .title { font-weight: 700; font-size: 20px; letter-spacing: 0.3px; }
+    .subtitle { color: var(--muted); font-size: 13px; }
+    .card {
+      background: var(--panel);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 14px;
+      box-shadow: 0 4px 16px var(--shadow);
+      padding: 14px;
+    }
+    .row { display: flex; gap: 12px; flex-wrap: wrap; }
+    .col { flex: 1 1 280px; }
+    .actions { display: flex; gap: 10px; flex-wrap: wrap; }
+    button, .btn {
+      appearance: none; border: 0; outline: 0; cursor: pointer;
+      background: var(--accent); color: #081222; font-weight: 700;
+      padding: 12px 16px; border-radius: 10px; font-size: 15px;
+      transition: transform 0.05s ease, opacity 0.2s ease;
+    }
+    button.secondary { background: #1c273d; color: var(--text); }
+    button.ghost { background: transparent; color: var(--muted); border: 1px dashed rgba(255,255,255,0.25); }
+    button.warn { background: var(--warning); color: #121212; }
+    button.danger { background: var(--danger); color: #fff; }
+    button:active { transform: translateY(1px); }
+    input, textarea, select {
+      width: 100%;
+      background: #0f1726;
+      color: var(--text);
+      border: 1px solid rgba(255,255,255,0.12);
+      padding: 12px 12px;
+      border-radius: 10px;
+      font-size: 15px;
+    }
+    textarea { min-height: 96px; resize: vertical; }
+    label { font-size: 13px; color: var(--muted); display: block; margin-bottom: 6px; }
+    .hint { font-size: 12px; color: var(--muted); }
+    .hidden { display: none !important; }
+    .stack { display: flex; flex-direction: column; gap: 10px; }
+    .vspace { height: 8px; }
+    .divider { height: 1px; background: rgba(255,255,255,0.08); margin: 12px 0; }
+    .pill { background: #16233a; color: var(--muted); padding: 6px 10px; border-radius: 999px; font-size: 12px; }
+    .right { text-align: right; }
+    .center { text-align: center; }
+
+    /* Chat layout */
+    .chat {
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      gap: 10px;
+      height: calc(100vh - 170px);
+      max-height: 1000px;
+    }
+    .chat-header { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+    .members { display: flex; gap: 6px; flex-wrap: wrap; }
+    .messages {
+      overflow-y: auto;
+      background: #0f1726;
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 10px;
+      padding: 10px;
+    }
+    .msg { margin: 6px 0; display: grid; grid-template-columns: auto 1fr; gap: 8px; align-items: baseline; }
+    .msg .from { font-weight: 700; color: var(--accent-2); font-size: 13px; }
+    .msg .mine { color: var(--accent); }
+    .msg .text { font-size: 15px; line-height: 1.35; }
+    .msg .sys { color: var(--muted); font-style: italic; }
+    .composer { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center; }
+
+    @media (min-width: 720px) {
+      .title { font-size: 22px; }
+      .chat { height: calc(100vh - 200px); }
+    }
   </style>
 </head>
 <body>
-  <h1>문장 유형 맞추기</h1>
-  <p class="question" id="sentence">문장이 로딩 중...</p>
-  <div>
-    <button onclick="checkAnswer('주동')">주동</button>
-    <button onclick="checkAnswer('피동')">피동</button>
-    <button onclick="checkAnswer('사동')">사동</button>
+  <div class="container">
+    <header>
+      <div>
+        <div class="title">Offline LAN Chat</div>
+        <div class="subtitle">Create or join a local chat room. No internet required.</div>
+      </div>
+      <div class="actions">
+        <button class="ghost" id="howItWorksBtn">How it works</button>
+      </div>
+    </header>
+
+    <div id="view-home" class="card stack">
+      <div class="row">
+        <div class="col card">
+          <div class="stack">
+            <div class="title">Create a room</div>
+            <div class="subtitle">Acts as the tiny in-browser server. Others join you.</div>
+            <div class="stack">
+              <div>
+                <label for="hostDisplayName">Your display name</label>
+                <input id="hostDisplayName" placeholder="e.g. Alex" />
+              </div>
+              <div>
+                <label for="hostRoomName">Room name</label>
+                <input id="hostRoomName" placeholder="e.g. Flight Chat 12A" />
+              </div>
+              <div>
+                <label for="hostPassword">Join Code (letters & numbers)</label>
+                <div class="row" style="gap:8px; align-items:center;">
+                  <div class="col" style="flex:1 1 auto;">
+                    <input id="hostPassword" placeholder="e.g. 7KPG4Z2C" inputmode="text" autocapitalize="characters" autocorrect="off" autocomplete="off" spellcheck="false" />
+                  </div>
+                  <div>
+                    <button id="shuffleJoinCode" class="ghost">Random</button>
+                  </div>
+                </div>
+                <div class="hint">Share this short code with everyone joining. It secures the chat.</div>
+              </div>
+            </div>
+            <div class="actions">
+              <button id="createRoomBtn">Create room</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="col card">
+          <div class="stack">
+            <div class="title">Join a room</div>
+            <div class="subtitle">You're connecting to a nearby host over the same Wi‑Fi/hotspot.</div>
+            <div class="stack">
+              <div>
+                <label for="joinDisplayName">Your display name</label>
+                <input id="joinDisplayName" placeholder="e.g. Sam" />
+              </div>
+              <div>
+                <label for="joinPassword">Join Code</label>
+                <input id="joinPassword" placeholder="Enter the host's Join Code" inputmode="text" autocapitalize="characters" autocorrect="off" autocomplete="off" spellcheck="false" />
+              </div>
+            </div>
+            <div class="actions">
+              <button id="showManualJoinBtn" class="ghost">Manual pairing</button>
+            </div>
+            <div id="manualJoinWrap" class="hidden">
+              <div class="stack">
+                <div>
+                  <label for="offerCodeInput">Paste Link Code from host (advanced)</label>
+                  <textarea id="offerCodeInput" placeholder="Paste Link Code here (SDP)"></textarea>
+                </div>
+              </div>
+              <div class="actions">
+                <button id="makeAnswerBtn" class="secondary">Generate Answer Code</button>
+              </div>
+              <div id="answerWrap" class="hidden">
+                <div class="vspace"></div>
+                <label>Your Answer Code (send to host)</label>
+                <textarea id="answerCodeOutput" readonly></textarea>
+                <div class="actions">
+                  <button id="copyAnswerBtn">Copy Answer</button>
+                  <button id="resetJoinBtn" class="ghost">Reset</button>
+                </div>
+                <div class="hint">After the host pastes your Answer Code, the connection will open and chat will appear below.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- HOST VIEW -->
+    <div id="view-host" class="hidden">
+      <div class="card stack">
+        <div class="chat">
+          <div class="chat-header">
+            <div>
+              <div class="title">Room: <span id="roomNameLabel"></span></div>
+              <div class="subtitle">Join Code: <span class="pill" id="joinCodeLabel"></span></div>
+            </div>
+            <div class="actions">
+              <button id="leaveHostBtn" class="danger">End room</button>
+            </div>
+          </div>
+          <div class="row">
+            <div class="col">
+              <div class="card stack">
+                <div class="title">Link a participant</div>
+                <div class="subtitle">Show a Link Code (or QR) and paste their Answer to connect.</div>
+                <div class="actions">
+                  <button id="genOfferBtn">Show Link Code</button>
+                </div>
+                <div id="pendingOffers" class="stack"></div>
+              </div>
+            </div>
+            <div class="col">
+              <div class="card stack">
+                <div class="title">Connected people</div>
+                <div class="members" id="memberChips"></div>
+                <div class="hint">Everyone must be on the same Wi‑Fi/hotspot. No internet is used.</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="messages" id="hostMessages"></div>
+          <div class="composer">
+            <input id="hostMessageInput" placeholder="Type a message" />
+            <div class="actions">
+              <button id="hostSendBtn">Send</button>
+              <button id="saveTranscriptHost" class="ghost">Save</button>
+              <button id="clearChatHost" class="ghost">Clear</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- JOIN VIEW -->
+    <div id="view-join" class="hidden">
+      <div class="card stack">
+        <div class="chat">
+          <div class="chat-header">
+            <div>
+              <div class="title">Joined room</div>
+              <div class="subtitle">You're connected to the host over local network.</div>
+            </div>
+            <div class="actions">
+              <button id="leaveJoinBtn" class="danger">Leave</button>
+            </div>
+          </div>
+          <div class="messages" id="joinMessages"></div>
+          <div class="composer">
+            <input id="joinMessageInput" placeholder="Type a message" />
+            <div class="actions">
+              <button id="joinSendBtn">Send</button>
+              <button id="saveTranscriptJoin" class="ghost">Save</button>
+              <button id="clearChatJoin" class="ghost">Clear</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- HOW IT WORKS -->
+    <div id="view-how" class="card hidden">
+      <div class="stack">
+        <div class="title">How it works (offline)</div>
+        <ol class="subtitle" style="margin: 0 0 6px 18px;">
+          <li>Host taps “Create room” and shares the short Join Code.</li>
+          <li>Open “Manual pairing” to exchange one-time Link Codes.</li>
+          <li>Friend pastes the Link Code, taps “Generate Answer Code”, and sends it back.</li>
+          <li>Host pastes the Answer Code. The chat opens.</li>
+        </ol>
+        <div class="hint">This uses local WebRTC connections with no STUN/TURN servers. Works on the same Wi‑Fi/hotspot without internet. The host relays messages between people in the room.</div>
+        <div class="actions right"><button id="closeHowBtn" class="secondary">Close</button></div>
+      </div>
+    </div>
   </div>
-  <p class="result" id="result"></p>
-  <button onclick="nextQuestion()">다음 문제</button>
 
   <script>
-    const questions = [{"sentence": "철수가 창문을 열었다.", "type": "주동"}, {"sentence": "민지가 꽃을 꺾었다.", "type": "주동"}, {"sentence": "나는 편지를 썼다.", "type": "주동"}, {"sentence": "선생님이 수업을 시작했다.", "type": "주동"}, {"sentence": "그가 벽을 칠했다.", "type": "주동"}, {"sentence": "아이가 공을 찼다.", "type": "주동"}, {"sentence": "우리가 길을 청소했다.", "type": "주동"}, {"sentence": "어머니가 식사를 준비했다.", "type": "주동"}, {"sentence": "의사가 환자를 진찰했다.", "type": "주동"}, {"sentence": "기자가 기사를 썼다.", "type": "주동"}, {"sentence": "요리사가 음식을 만들었다.", "type": "주동"}, {"sentence": "나는 시험을 봤다.", "type": "주동"}, {"sentence": "아버지가 나무를 베었다.", "type": "주동"}, {"sentence": "그녀는 고양이를 안았다.", "type": "주동"}, {"sentence": "운전자가 차를 멈췄다.", "type": "주동"}, {"sentence": "나는 카메라로 사진을 찍었다.", "type": "주동"}, {"sentence": "사장이 회의를 열었다.", "type": "주동"}, {"sentence": "아이들이 종이비행기를 날렸다.", "type": "주동"}, {"sentence": "그는 조용히 문을 닫았다.", "type": "주동"}, {"sentence": "나는 휴대폰을 충전했다.", "type": "주동"}, {"sentence": "학생이 문제를 풀었다.", "type": "주동"}, {"sentence": "그녀가 노래를 불렀다.", "type": "주동"}, {"sentence": "강아지가 장난감을 물었다.", "type": "주동"}, {"sentence": "그들이 시계를 고쳤다.", "type": "주동"}, {"sentence": "나는 손을 씻었다.", "type": "주동"}, {"sentence": "선수가 공을 던졌다.", "type": "주동"}, {"sentence": "누군가 종을 울렸다.", "type": "주동"}, {"sentence": "나는 우산을 폈다.", "type": "주동"}, {"sentence": "그가 노트북을 닫았다.", "type": "주동"}, {"sentence": "아이가 문을 열었다.", "type": "주동"}, {"sentence": "아버지가 불을 껐다.", "type": "주동"}, {"sentence": "나는 불을 켰다.", "type": "주동"}, {"sentence": "그녀는 창문을 열었다.", "type": "주동"}, {"sentence": "남자가 시동을 걸었다.", "type": "주동"}, {"sentence": "창문이 바람에 의해 열렸다.", "type": "피동"}, {"sentence": "편지가 우체부에 의해 배달되었다.", "type": "피동"}, {"sentence": "문이 저절로 닫혔다.", "type": "피동"}, {"sentence": "그림이 벽에 걸렸다.", "type": "피동"}, {"sentence": "전화가 끊겼다.", "type": "피동"}, {"sentence": "종이비행기가 바람에 날아갔다.", "type": "피동"}, {"sentence": "문서가 복사되었다.", "type": "피동"}, {"sentence": "그의 이름이 명단에 올랐다.", "type": "피동"}, {"sentence": "기회가 놓쳐졌다.", "type": "피동"}, {"sentence": "창문이 닫혔다.", "type": "피동"}, {"sentence": "식당이 예약되었다.", "type": "피동"}, {"sentence": "꽃병이 깨졌다.", "type": "피동"}, {"sentence": "편지가 찢어졌다.", "type": "피동"}, {"sentence": "그림이 팔렸다.", "type": "피동"}, {"sentence": "문이 열렸다.", "type": "피동"}, {"sentence": "옷이 더러워졌다.", "type": "피동"}, {"sentence": "창문이 깨졌다.", "type": "피동"}, {"sentence": "전화가 고장 났다.", "type": "피동"}, {"sentence": "종이배가 물에 떠내려갔다.", "type": "피동"}, {"sentence": "공이 구석에 굴러갔다.", "type": "피동"}, {"sentence": "노래가 들려왔다.", "type": "피동"}, {"sentence": "문제가 해결되었다.", "type": "피동"}, {"sentence": "메일이 보내졌다.", "type": "피동"}, {"sentence": "컴퓨터가 꺼졌다.", "type": "피동"}, {"sentence": "음악이 크게 틀어졌다.", "type": "피동"}, {"sentence": "의자가 밀려났다.", "type": "피동"}, {"sentence": "차가 멈춰졌다.", "type": "피동"}, {"sentence": "책이 떨어졌다.", "type": "피동"}, {"sentence": "그림이 찢어졌다.", "type": "피동"}, {"sentence": "음식이 상했다.", "type": "피동"}, {"sentence": "신호가 끊겼다.", "type": "피동"}, {"sentence": "편지가 읽혔다.", "type": "피동"}, {"sentence": "코드가 뽑혔다.", "type": "피동"}, {"sentence": "철수가 동생에게 창문을 열게 했다.", "type": "사동"}, {"sentence": "나는 동생을 울렸다.", "type": "사동"}, {"sentence": "그는 아이를 재웠다.", "type": "사동"}, {"sentence": "어머니가 아이에게 밥을 먹였다.", "type": "사동"}, {"sentence": "선생님이 학생을 일으켰다.", "type": "사동"}, {"sentence": "나는 동생에게 책을 읽게 했다.", "type": "사동"}, {"sentence": "우리는 아이를 웃게 했다.", "type": "사동"}, {"sentence": "그녀는 아이를 앉혔다.", "type": "사동"}, {"sentence": "나는 친구에게 문을 닫게 했다.", "type": "사동"}, {"sentence": "그는 학생을 걷게 했다.", "type": "사동"}, {"sentence": "어머니는 아이를 씻겼다.", "type": "사동"}, {"sentence": "그녀는 나를 웃겼다.", "type": "사동"}, {"sentence": "선생님은 아이에게 노래를 부르게 했다.", "type": "사동"}, {"sentence": "나는 동생에게 책가방을 메게 했다.", "type": "사동"}, {"sentence": "그는 고양이를 밖으로 내보냈다.", "type": "사동"}, {"sentence": "부모님이 아이를 춤추게 했다.", "type": "사동"}, {"sentence": "우리는 동생을 밖으로 내보냈다.", "type": "사동"}, {"sentence": "그녀는 고양이를 뛰게 했다.", "type": "사동"}, {"sentence": "선생님이 학생을 칠판 앞에 세웠다.", "type": "사동"}, {"sentence": "나는 친구에게 물건을 사게 했다.", "type": "사동"}, {"sentence": "그는 고양이를 안게 했다.", "type": "사동"}, {"sentence": "나는 동생을 기다리게 했다.", "type": "사동"}, {"sentence": "그녀는 아이에게 춤을 추게 했다.", "type": "사동"}, {"sentence": "선생님이 학생에게 문제를 풀게 했다.", "type": "사동"}, {"sentence": "우리가 고양이를 안게 했다.", "type": "사동"}, {"sentence": "그는 친구를 화나게 했다.", "type": "사동"}, {"sentence": "나는 아이에게 자전거를 타게 했다.", "type": "사동"}, {"sentence": "아버지가 나를 운동하게 했다.", "type": "사동"}, {"sentence": "그녀는 나에게 노래를 시켰다.", "type": "사동"}, {"sentence": "나는 동생을 공부시키고 있다.", "type": "사동"}, {"sentence": "선생님이 학생을 떠들지 못하게 했다.", "type": "사동"}, {"sentence": "나는 친구를 도와주게 했다.", "type": "사동"}, {"sentence": "그는 아이를 울게 했다.", "type": "사동"}];
-    let currentQuestion = {};
+    // ---------- Utilities ----------
+    const enc = new TextEncoder();
+    const dec = new TextDecoder();
 
-    function nextQuestion() {
-      document.getElementById("result").textContent = "";
-      currentQuestion = questions[Math.floor(Math.random() * questions.length)];
-      document.getElementById("sentence").textContent = currentQuestion.sentence;
+    function uid(len = 8) {
+      const alphabet = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
+      let s = '';
+      const bytes = new Uint8Array(len);
+      crypto.getRandomValues(bytes);
+      for (let i = 0; i < len; i++) s += alphabet[bytes[i] % alphabet.length];
+      return s;
     }
 
-    function checkAnswer(choice) {
-      if (choice === currentQuestion.type) {
-        document.getElementById("result").textContent = "정답입니다!";
-      } else {
-        document.getElementById("result").textContent = `오답입니다! 정답: ${currentQuestion.type}`;
+    function bufToBase64(buf) {
+      const bytes = new Uint8Array(buf);
+      let binary = '';
+      for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+      return btoa(binary);
+    }
+
+    function base64ToBuf(b64) {
+      const binary = atob(b64);
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+      return bytes.buffer;
+    }
+
+    function sdpToCode(sdp, saltB64, roomName, version = 1) {
+      const payload = { v: version, t: 'offer', sdp: btoa(sdp), salt: saltB64, roomName: roomName || '' };
+      return JSON.stringify(payload);
+    }
+    function parseOfferCode(code) {
+      const obj = JSON.parse(code);
+      if (!obj || obj.t !== 'offer' || !obj.sdp || !obj.salt) throw new Error('Invalid Join Code');
+      return { sdp: atob(obj.sdp), saltB64: obj.salt, roomName: obj.roomName || '' };
+    }
+
+    function answerToCode(answerSdp, version = 1) {
+      return JSON.stringify({ v: version, t: 'answer', sdp: btoa(answerSdp) });
+    }
+    function parseAnswerCode(code) {
+      const obj = JSON.parse(code);
+      if (!obj || obj.t !== 'answer' || !obj.sdp) throw new Error('Invalid Answer Code');
+      return atob(obj.sdp);
+    }
+
+    async function deriveAesKey(password, saltB64) {
+      const salt = base64ToBuf(saltB64);
+      const keyMaterial = await crypto.subtle.importKey('raw', enc.encode(password), 'PBKDF2', false, ['deriveKey']);
+      return await crypto.subtle.deriveKey(
+        { name: 'PBKDF2', salt, iterations: 150000, hash: 'SHA-256' },
+        keyMaterial,
+        { name: 'AES-GCM', length: 256 },
+        false,
+        ['encrypt', 'decrypt']
+      );
+    }
+
+    async function encryptJson(key, obj) {
+      const iv = crypto.getRandomValues(new Uint8Array(12));
+      const ciphertext = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, enc.encode(JSON.stringify(obj)));
+      return { iv: bufToBase64(iv), ct: bufToBase64(ciphertext) };
+    }
+    async function decryptJson(key, payload) {
+      const { iv, ct } = payload;
+      const plaintext = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: new Uint8Array(base64ToBuf(iv)) }, key, base64ToBuf(ct));
+      return JSON.parse(dec.decode(plaintext));
+    }
+
+    function autoscroll(el) { el.scrollTop = el.scrollHeight + 9999; }
+    function ts() { return new Date().toISOString(); }
+    function download(filename, text) {
+      const blob = new Blob([text], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = filename; a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+
+    async function waitForIceGathering(pc) {
+      if (pc.iceGatheringState === 'complete') return;
+      await new Promise(resolve => {
+        const check = () => {
+          if (pc.iceGatheringState === 'complete') {
+            pc.removeEventListener('icegatheringstatechange', check);
+            resolve();
+          }
+        };
+        pc.addEventListener('icegatheringstatechange', check);
+      });
+    }
+
+    // ---------- App State ----------
+    const E = (id) => document.getElementById(id);
+    const state = {
+      view: 'home',
+      roomName: '',
+      roomId: '',
+      hostName: '',
+      joinName: '',
+      saltB64: '',
+      key: null,
+      // Host side
+      host: {
+        pcs: new Map(), // peerId -> { pc, dc, name, open }
+        transcript: [],
+      },
+      // Joiner side
+      join: {
+        pc: null,
+        dc: null,
+        transcript: [],
+      }
+    };
+
+    function setView(name) {
+      state.view = name;
+      E('view-home').classList.toggle('hidden', name !== 'home');
+      E('view-host').classList.toggle('hidden', name !== 'host');
+      E('view-join').classList.toggle('hidden', name !== 'join');
+      E('view-how').classList.add('hidden');
+    }
+
+    // ---------- UI wiring ----------
+    E('howItWorksBtn').onclick = () => {
+      E('view-how').classList.remove('hidden');
+    };
+    E('closeHowBtn').onclick = () => E('view-how').classList.add('hidden');
+
+    // Default a random short Join Code for convenience
+    E('hostPassword').value = uid(8);
+    E('shuffleJoinCode').onclick = () => { E('hostPassword').value = uid(8); };
+    function sanitizeCodeInput(el) {
+      el.value = (el.value || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+    }
+    E('hostPassword').addEventListener('input', () => sanitizeCodeInput(E('hostPassword')));
+    E('joinPassword').addEventListener('input', () => sanitizeCodeInput(E('joinPassword')));
+
+    // Toggle manual pairing UI for fallback use
+    E('showManualJoinBtn').onclick = () => {
+      const el = E('manualJoinWrap');
+      el.classList.toggle('hidden');
+    };
+
+    // Home -> Host
+    E('createRoomBtn').onclick = async () => {
+      const name = (E('hostDisplayName').value || '').trim() || 'Host';
+      const roomName = (E('hostRoomName').value || '').trim() || 'Room-' + uid(4);
+      sanitizeCodeInput(E('hostPassword'));
+      const password = E('hostPassword').value || uid(8);
+      if (!password) { alert('Please set a room password.'); return; }
+      const salt = crypto.getRandomValues(new Uint8Array(16));
+      state.saltB64 = bufToBase64(salt);
+      state.key = await deriveAesKey(password, state.saltB64);
+      state.hostName = name;
+      state.roomName = roomName;
+      state.roomId = uid(6);
+      E('roomNameLabel').textContent = roomName;
+      E('joinCodeLabel').textContent = password;
+      updateMembers();
+      setView('host');
+      sysHost(`Room started: ${roomName}`);
+      sysHost('Tip: Tap “Generate Join Code” for each person.');
+    };
+
+    // Home -> Join: prepare answer from offer
+    E('makeAnswerBtn').onclick = async () => {
+      try {
+        const displayName = (E('joinDisplayName').value || '').trim() || 'Guest-' + uid(3);
+        sanitizeCodeInput(E('joinPassword'));
+        const password = E('joinPassword').value;
+        if (!password) { alert('Enter the room password.'); return; }
+        const { sdp, saltB64, roomName } = parseOfferCode(E('offerCodeInput').value.trim());
+        state.joinName = displayName;
+        state.key = await deriveAesKey(password, saltB64);
+        state.saltB64 = saltB64;
+        // Create PC, set remote, create answer
+        const pc = new RTCPeerConnection({ iceServers: [] });
+        state.join.pc = pc;
+        pc.ondatachannel = (ev) => {
+          const dc = ev.channel;
+          state.join.dc = dc;
+          attachJoinDataChannel(dc);
+        };
+        await pc.setRemoteDescription({ type: 'offer', sdp });
+        const answer = await pc.createAnswer();
+        await pc.setLocalDescription(answer);
+        await waitForIceGathering(pc);
+        const code = answerToCode(pc.localDescription.sdp);
+        E('answerCodeOutput').value = code;
+        E('answerWrap').classList.remove('hidden');
+      } catch (err) {
+        console.error(err);
+        alert('Could not generate Answer Code. Check the Join Code and try again.');
+      }
+    };
+    E('copyAnswerBtn').onclick = async () => {
+      try { await navigator.clipboard.writeText(E('answerCodeOutput').value); } catch {}
+    };
+    E('resetJoinBtn').onclick = () => {
+      E('offerCodeInput').value = '';
+      E('answerCodeOutput').value = '';
+      E('answerWrap').classList.add('hidden');
+      if (state.join.pc) { try { state.join.pc.close(); } catch {} state.join.pc = null; }
+    };
+
+    // Host: end room
+    E('leaveHostBtn').onclick = () => {
+      for (const [, peer] of state.host.pcs) {
+        try { peer.dc && peer.dc.close(); } catch {}
+        try { peer.pc && peer.pc.close(); } catch {}
+      }
+      state.host.pcs.clear();
+      state.host.transcript = [];
+      state.key = null; state.saltB64 = '';
+      setView('home');
+    };
+
+    // Join: leave
+    E('leaveJoinBtn').onclick = () => {
+      if (state.join.dc) { try { state.join.dc.close(); } catch {} }
+      if (state.join.pc) { try { state.join.pc.close(); } catch {} }
+      state.join.dc = null; state.join.pc = null; state.join.transcript = [];
+      state.key = null; state.saltB64 = '';
+      setView('home');
+    };
+
+    // Host: generate offer per participant
+    E('genOfferBtn').onclick = async () => {
+      const offerId = uid(6);
+      const pc = new RTCPeerConnection({ iceServers: [] });
+      const dc = pc.createDataChannel('chat');
+      const offerItemEl = document.createElement('div');
+      offerItemEl.className = 'card stack';
+      offerItemEl.innerHTML = `
+        <div class="stack">
+          <div><span class="pill">Offer ${offerId}</span></div>
+          <label>Join SDP (advanced)</label>
+          <textarea class="offerText" readonly></textarea>
+          <div class="actions">
+            <button class="copyOffer">Copy</button>
+            <button class="cancelOffer ghost">Cancel</button>
+          </div>
+          <div class="divider"></div>
+          <label>Answer SDP from that person (advanced)</label>
+          <textarea class="answerText" placeholder="Paste Answer Code"></textarea>
+          <div class="actions">
+            <button class="applyAnswer secondary">Connect</button>
+          </div>
+        </div>`;
+      E('pendingOffers').prepend(offerItemEl);
+
+      const offerText = offerItemEl.querySelector('.offerText');
+      const copyOfferBtn = offerItemEl.querySelector('.copyOffer');
+      const cancelOfferBtn = offerItemEl.querySelector('.cancelOffer');
+      const answerText = offerItemEl.querySelector('.answerText');
+      const applyAnswerBtn = offerItemEl.querySelector('.applyAnswer');
+
+      dc.onopen = () => {
+        const record = state.host.pcs.get(offerId);
+        if (record) { record.open = true; }
+        sysHost('A participant connected.');
+        updateMembers();
+      };
+      dc.onmessage = async (ev) => {
+        try {
+          const msg = JSON.parse(ev.data);
+          if (msg.kind === 'encrypted') {
+            // Decrypt for local display
+            const plain = await decryptJson(state.key, msg.payload);
+            if (plain.type === 'hello') {
+              const r = state.host.pcs.get(offerId);
+              if (r) { r.name = plain.displayName || ('Guest-' + offerId); updateMembers(); }
+              // Broadcast system join message
+              await broadcastSystem(`${r?.name || 'Guest'} joined`);
+            } else if (plain.type === 'chat') {
+              addHostMessage(plain.displayName, plain.text, false);
+            }
+            // Relay to others as-is (encrypted)
+            relayToOthers(offerId, ev.data);
+          }
+        } catch (e) { console.warn('Message error', e); }
+      };
+      pc.oniceconnectionstatechange = () => {
+        const st = pc.iceConnectionState;
+        if (st === 'failed' || st === 'disconnected' || st === 'closed') {
+          const r = state.host.pcs.get(offerId);
+          state.host.pcs.delete(offerId);
+          updateMembers();
+          offerItemEl.remove();
+          if (r?.name) broadcastSystem(`${r.name} left`).catch(()=>{});
+        }
+      };
+
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
+      await waitForIceGathering(pc);
+      const code = sdpToCode(pc.localDescription.sdp, state.saltB64, state.roomName);
+      offerText.value = code;
+      copyOfferBtn.onclick = async () => { try { await navigator.clipboard.writeText(code); } catch {} };
+      cancelOfferBtn.onclick = () => { try { pc.close(); } catch {} offerItemEl.remove(); };
+      applyAnswerBtn.onclick = async () => {
+        try {
+          const sdp = parseAnswerCode((answerText.value || '').trim());
+          await pc.setRemoteDescription({ type: 'answer', sdp });
+          // Keep track
+          state.host.pcs.set(offerId, { pc, dc, name: undefined, open: false });
+        } catch (e) {
+          alert('Invalid Answer Code');
+        }
+      };
+    };
+
+    async function relayToOthers(fromId, data) {
+      for (const [id, peer] of state.host.pcs) {
+        if (id === fromId) continue;
+        if (peer.dc && peer.dc.readyState === 'open') {
+          try { peer.dc.send(data); } catch {}
+        }
       }
     }
 
-    window.onload = nextQuestion;
+    async function broadcastEncrypted(obj) {
+      const payload = await encryptJson(state.key, obj);
+      const wire = JSON.stringify({ kind: 'encrypted', payload });
+      // To peers
+      for (const [, peer] of state.host.pcs) {
+        if (peer.dc && peer.dc.readyState === 'open') {
+          try { peer.dc.send(wire); } catch {}
+        }
+      }
+      return wire; // for local/self handling
+    }
+
+    async function broadcastSystem(text) {
+      const wire = await broadcastEncrypted({ type: 'system', text, timestamp: ts() });
+      addHostSystem(text);
+      return wire;
+    }
+
+    // Host chat UI
+    E('hostSendBtn').onclick = async () => {
+      const input = E('hostMessageInput');
+      const text = input.value.trim();
+      if (!text) return;
+      input.value = '';
+      addHostMessage(state.hostName || 'Host', text, true);
+      await broadcastEncrypted({ type: 'chat', displayName: state.hostName || 'Host', text, timestamp: ts() });
+    };
+    E('saveTranscriptHost').onclick = () => download(`chat-${state.roomName || 'room'}.txt`, state.host.transcript.join('\n'));
+    E('clearChatHost').onclick = () => { const m = E('hostMessages'); m.innerHTML = ''; state.host.transcript = []; };
+
+    function addHostMessage(from, text, mine) {
+      const m = E('hostMessages');
+      const el = document.createElement('div');
+      el.className = 'msg';
+      el.innerHTML = `<div class="from ${mine ? 'mine' : ''}">${escapeHtml(from)}</div><div class="text">${escapeHtml(text)}</div>`;
+      m.appendChild(el); autoscroll(m);
+      state.host.transcript.push(`[${new Date().toLocaleTimeString()}] ${from}: ${text}`);
+    }
+    function addHostSystem(text) {
+      const m = E('hostMessages');
+      const el = document.createElement('div');
+      el.className = 'msg';
+      el.innerHTML = `<div class="from sys">•</div><div class="text sys">${escapeHtml(text)}</div>`;
+      m.appendChild(el); autoscroll(m);
+      state.host.transcript.push(`[*] ${text}`);
+    }
+
+    function updateMembers() {
+      const chips = E('memberChips');
+      chips.innerHTML = '';
+      const me = document.createElement('span'); me.className = 'pill'; me.textContent = (state.hostName || 'Host') + ' (host)'; chips.appendChild(me);
+      for (const [, p] of state.host.pcs) {
+        const chip = document.createElement('span');
+        chip.className = 'pill';
+        chip.textContent = p.name ? p.name : 'Pending…';
+        chips.appendChild(chip);
+      }
+    }
+
+    function escapeHtml(s) { return (s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[c])); }
+
+    // Join DC attach
+    function attachJoinDataChannel(dc) {
+      dc.onopen = async () => {
+        setView('join');
+        addJoinSystem('Connected');
+        // Send hello with display name
+        const hello = await encryptJson(state.key, { type: 'hello', displayName: state.joinName, timestamp: ts() });
+        dc.send(JSON.stringify({ kind: 'encrypted', payload: hello }));
+      };
+      dc.onmessage = async (ev) => {
+        try {
+          const msg = JSON.parse(ev.data);
+          if (msg.kind === 'encrypted') {
+            const plain = await decryptJson(state.key, msg.payload);
+            if (plain.type === 'system') {
+              addJoinSystem(plain.text);
+            } else if (plain.type === 'chat') {
+              addJoinMessage(plain.displayName, plain.text, false);
+            }
+          }
+        } catch (e) { console.warn('Join message err', e); }
+      };
+      dc.onclose = () => { addJoinSystem('Disconnected'); };
+    }
+
+    // Join chat UI
+    E('joinSendBtn').onclick = async () => {
+      const input = E('joinMessageInput');
+      const text = input.value.trim();
+      if (!text) return;
+      input.value = '';
+      addJoinMessage(state.joinName || 'Me', text, true);
+      const payload = await encryptJson(state.key, { type: 'chat', displayName: state.joinName || 'Me', text, timestamp: ts() });
+      state.join.dc?.send(JSON.stringify({ kind: 'encrypted', payload }));
+    };
+    E('saveTranscriptJoin').onclick = () => download(`chat-${state.roomName || 'room'}.txt`, state.join.transcript.join('\n'));
+    E('clearChatJoin').onclick = () => { const m = E('joinMessages'); m.innerHTML = ''; state.join.transcript = []; };
+
+    function addJoinMessage(from, text, mine) {
+      const m = E('joinMessages');
+      const el = document.createElement('div');
+      el.className = 'msg';
+      el.innerHTML = `<div class="from ${mine ? 'mine' : ''}">${escapeHtml(from)}</div><div class="text">${escapeHtml(text)}</div>`;
+      m.appendChild(el); autoscroll(m);
+      state.join.transcript.push(`[${new Date().toLocaleTimeString()}] ${from}: ${text}`);
+    }
+    function addJoinSystem(text) {
+      const m = E('joinMessages');
+      const el = document.createElement('div');
+      el.className = 'msg';
+      el.innerHTML = `<div class="from sys">•</div><div class="text sys">${escapeHtml(text)}</div>`;
+      m.appendChild(el); autoscroll(m);
+      state.join.transcript.push(`[*] ${text}`);
+    }
+
+    // Keyboard send
+    E('hostMessageInput').addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); E('hostSendBtn').click(); } });
+    E('joinMessageInput').addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); E('joinSendBtn').click(); } });
+
   </script>
 </body>
 </html>
